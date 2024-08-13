@@ -1,0 +1,64 @@
+CREATE DATABASE flores_el_futuro
+
+CREATE TABLE proveedor (
+	id_proveedor INT(11) NOT NULL AUTO_INCREMENT,
+    nombre varchar(45) DEFAULT NULL,
+    direccion varchar(45) DEFAULT NULL,
+    telefono INT(11) DEFAULT NULL,
+    email varchar(45) DEFAULT NULL,
+    metodo_pago TEXT DEFAULT NULL,
+    PRIMARY KEY(id_proveedor)
+)
+
+CREATE TABLE producto (
+	id_producto INT(11) NOT NULL AUTO_INCREMENT,
+    id_proveedor INT(11) DEFAULT NULL,
+    nombre varchar(45) DEFAULT NULL,
+    tipo varchar(45) DEFAULT NULL,
+    precio DECIMAL(15,2) DEFAULT NULL,
+    descripcion TEXT DEFAULT NULL,
+    cantidad_stock INT(11) DEFAULT NULL,
+    fecha_llegada DATE DEFAULT NULL,
+    PRIMARY KEY(id_producto),
+    FOREIGN KEY(id_proveedor) REFERENCES proveedor(id_proveedor)
+)
+
+CREATE TABLE inventario (
+	id_inventario INT(11) NOT NULL AUTO_INCREMENT,
+    id_producto INT(11) DEFAULT NULL,
+    cantidad_disponible INT(11) DEFAULT NULL,
+    ubicacion TEXT DEFAULT NULL,
+    PRIMARY KEY(id_inventario),
+    FOREIGN KEY(id_producto) REFERENCES producto(id_producto)
+)
+
+CREATE TABLE cliente (
+	id_cliente INT(11) NOT NULL AUTO_INCREMENT,
+    nombre varchar(45) DEFAULT NULL,
+    direccion varchar(45) DEFAULT NULL,
+    telefono INT(11) DEFAULT NULL,
+    email varchar(45) DEFAULT NULL,
+    total_pedidos varchar(45) DEFAULT NULL,
+    PRIMARY KEY(id_cliente)
+)
+
+CREATE TABLE ventas (
+	id_venta INT(11) NOT NULL AUTO_INCREMENT,
+    id_cliente INT(11) DEFAULT NULL,
+    fecha DATE DEFAULT NULL,
+    total_venta DECIMAL(15,2) DEFAULT NULL,
+    metodo_de_pago TEXT DEFAULT NULL,
+    PRIMARY KEY(id_venta),
+    FOREIGN KEY(id_cliente) REFERENCES cliente(id_cliente)
+)
+
+CREATE TABLE detalle_venta (
+	id_detalle_venta INT(11) NOT NULL AUTO_INCREMENT,
+    id_venta INT(11) DEFAULT NULL,
+    id_producto INT(11) DEFAULT NULL,
+    cantidad INT(11) DEFAULT NULL,
+    precio_unitario DECIMAL(15,2) DEFAULT NULL,
+    PRIMARY KEY(id_detalle_venta),
+    FOREIGN KEY(id_venta) REFERENCES ventas(id_venta),
+    FOREIGN KEY(id_producto) REFERENCES producto(id_producto)
+);
