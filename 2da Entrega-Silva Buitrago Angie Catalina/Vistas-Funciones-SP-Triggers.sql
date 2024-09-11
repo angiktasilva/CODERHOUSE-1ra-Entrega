@@ -1,0 +1,125 @@
+-- Triggers
+
+DELIMITER //
+
+-- Establecer precio_unitario
+CREATE TRIGGER establecer_precio_unitario
+BEFORE INSERT ON detalle_venta
+FOR EACH ROW
+BEGIN
+    SET NEW.precio_unitario = (
+        SELECT precio_venta
+        FROM producto
+        WHERE id_producto = NEW.id_producto
+    );
+END;
+//
+
+-- Actualizar total_venta
+CREATE TRIGGER actualizar_total_venta
+AFTER INSERT ON detalle_venta
+FOR EACH ROW
+BEGIN
+    UPDATE ventas
+    SET total_venta = (
+        SELECT SUM(subtotal)
+        FROM detalle_venta
+        WHERE id_venta = NEW.id_venta
+    )
+    WHERE id_venta = NEW.id_venta;
+END;
+//
+
+-- Actualizar subtotal
+CREATE TRIGGER actualizar_subtotal
+BEFORE INSERT ON detalle_venta
+FOR EACH ROW
+BEGIN
+    SET NEW.subtotal = NEW.cantidad * NEW.precio_unitario;
+END;
+//
+
+DELIMITER ;
+
+-- Funciones
+
+DELIMITER //
+
+-- Función para calcular el total de ventas de un producto
+CREATE FUNCTION total_ventas_producto(id_prod INT)
+RETURNS DECIMAL(15,2)
+BEGIN
+    DECLARE total DECIMAL(15,2);
+    SELECT SUM(detalle_venta.subtotal) INTO total
+    FROM detalle_venta
+    JOIN ventas ON detalle_venta.id_venta = ventas.id_venta
+    WHERE detalle_venta.id_producto = id_prod;
+    RETURN IFNULL(total, 0);
+END
+//
+
+-- Función para obtener el nombre del proveedor de un producto
+CREATE FUNCTION obtener_proveedor(id_prod_pv INT)
+RETURNS VARCHAR(45)
+BEGIN
+    DECLARE nombre_proveedor VARCHAR(45);
+    SELECT proveedor.nombre INTO nombre_proveedor
+    FROM proveedor
+    JOIN producto ON proveedor.id_proveedor = producto.id_proveedor
+    WHERE producto.id_producto = id_prod_pv;
+    RETURN IFNULL(nombre_proveedor, 'Sin proveedor');
+END
+//
+
+DELIMITER ;
+
+-- Stored procedures
+
+DELIMITER //
+
+-- Registrar nuevo cliente
+CREATE PROCEDURE registrar_nuevo_cliente(
+    IN nombre_nuevo VARCHAR(45),
+    IN direccion_nuevo VARCHAR(45),
+    IN telefono_nuevo CHAR(15),
+    IN email_nuevo VARCHAR(45)
+)
+BEGIN
+    INSERT INTO cliente (nombre, direccion, telefono, email, fecha_registro)
+    VALUES (nombre_nuevo, direccion_nuevo, telefono_nuevo, email_nuevo, CURDATE());
+    SELECT LAST_INSERT_ID() AS id_nuevo_cliente;
+END
+//
+
+-- Actualizar el precio de venta de un producto
+CREATE PROCEDURE actualizar_precio_venta(
+    IN producto_nuevo_id INT,
+    IN nuevo_precio DECIMAL(15,2)
+)
+BEGIN
+    UPDATE producto
+    SET precio_venta = nuevo_precio
+    WHERE id_producto = producto_nuevo_id;
+    
+    SELECT CONCAT('Precio actualizado para el producto: ', producto_nuevo_id, ' = ', '$',nuevo_precio) AS mensaje;
+END
+//
+
+DELIMITER ;
+
+-- Vistas
+
+-- Vista de ventas por cliente
+CREATE VIEW ventas_por_cliente AS
+SELECT cliente.id_cliente, cliente.nombre, COUNT(ventas.id_venta) as total_ventas, SUM(ventas.total_venta) as monto_total
+FROM cliente
+LEFT JOIN ventas ON cliente.id_cliente = ventas.id_cliente
+GROUP BY cliente.id_cliente, cliente.nombre;
+
+-- Vista de productos más vendidos
+CREATE VIEW productos_mas_vendidos AS
+SELECT producto.id_producto, producto.nombre, SUM(detalle_venta.cantidad) as total_vendido
+FROM producto
+JOIN detalle_venta ON producto.id_producto = detalle_venta.id_producto
+GROUP BY producto.id_producto, producto.nombre
+ORDER BY total_vendido DESC;
